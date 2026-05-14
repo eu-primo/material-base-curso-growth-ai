@@ -1,0 +1,123 @@
+{
+  "_comentario": "Dataset ficticio para workshop. Simula dados de uma loja de roupas ('Moda Bella') em janeiro 2026. Use este JSON para praticar geracao de reports mesmo sem APIs configuradas.",
+
+  "meta": {
+    "empresa": "Moda Bella",
+    "periodo": "Janeiro 2026",
+    "data_geracao": "2026-02-01"
+  },
+
+  "resumo": {
+    "investimento_total": 18450.00,
+    "sessoes_total": 42380,
+    "leads_total": 285,
+    "conversoes_total": 68,
+    "gmv_total": 156200.00,
+    "roas": 8.47,
+    "cpa": 271.32
+  },
+
+  "investimento_por_canal": {
+    "_comentario": "Spend por plataforma de ads",
+    "google_ads": {
+      "spend": 12800.00,
+      "impressions": 580000,
+      "clicks": 14200,
+      "conversions": 48,
+      "cpc": 0.90,
+      "ctr": 0.0245
+    },
+    "meta_ads": {
+      "spend": 5650.00,
+      "impressions": 320000,
+      "clicks": 8900,
+      "conversions": 20,
+      "cpc": 0.63,
+      "ctr": 0.0278,
+      "reach": 185000,
+      "frequency": 1.73
+    }
+  },
+
+  "sessoes_por_canal": {
+    "_comentario": "GA4 - sessionDefaultChannelGroup",
+    "canais": [
+      {"canal": "Paid Search", "sessoes": 12400, "usuarios": 10800},
+      {"canal": "Organic Search", "sessoes": 11200, "usuarios": 9500},
+      {"canal": "Paid Social", "sessoes": 7800, "usuarios": 7200},
+      {"canal": "Direct", "sessoes": 5100, "usuarios": 4200},
+      {"canal": "Organic Social", "sessoes": 3200, "usuarios": 2900},
+      {"canal": "Referral", "sessoes": 1580, "usuarios": 1300},
+      {"canal": "Email", "sessoes": 1100, "usuarios": 950}
+    ]
+  },
+
+  "campanhas": {
+    "_comentario": "Performance por campanha (Google + Meta)",
+    "lista": [
+      {"nome": "Google - Shopping Vestidos", "canal": "Google", "spend": 3200, "clicks": 4100, "impressions": 145000, "ctr": 0.0283, "cpc": 0.78, "conversions": 15},
+      {"nome": "Google - Search Marca", "canal": "Google", "spend": 2800, "clicks": 3200, "impressions": 28000, "ctr": 0.1143, "cpc": 0.88, "conversions": 12},
+      {"nome": "Google - PMax Calcados", "canal": "Google", "spend": 2500, "clicks": 2800, "impressions": 160000, "ctr": 0.0175, "cpc": 0.89, "conversions": 8},
+      {"nome": "Google - Shopping Acessorios", "canal": "Google", "spend": 2200, "clicks": 2300, "impressions": 120000, "ctr": 0.0192, "cpc": 0.96, "conversions": 7},
+      {"nome": "Google - Search Generica", "canal": "Google", "spend": 2100, "clicks": 1800, "impressions": 127000, "ctr": 0.0142, "cpc": 1.17, "conversions": 6},
+      {"nome": "Meta - Retargeting LookBook", "canal": "Meta", "spend": 2200, "clicks": 3500, "impressions": 95000, "ctr": 0.0368, "cpc": 0.63, "conversions": 10},
+      {"nome": "Meta - Prospeccao Verao", "canal": "Meta", "spend": 1800, "clicks": 2800, "impressions": 120000, "ctr": 0.0233, "cpc": 0.64, "conversions": 6},
+      {"nome": "Meta - Stories Lancamento", "canal": "Meta", "spend": 1650, "clicks": 2600, "impressions": 105000, "ctr": 0.0248, "cpc": 0.63, "conversions": 4}
+    ]
+  },
+
+  "evolucao_diaria": {
+    "_comentario": "Dados diarios de sessoes e investimento (31 dias de janeiro)",
+    "dias": [
+      {"data": "2026-01-01", "sessoes": 980, "invest": 420},
+      {"data": "2026-01-02", "sessoes": 1150, "invest": 480},
+      {"data": "2026-01-03", "sessoes": 1280, "invest": 520},
+      {"data": "2026-01-04", "sessoes": 1050, "invest": 450},
+      {"data": "2026-01-05", "sessoes": 1420, "invest": 580},
+      {"data": "2026-01-06", "sessoes": 1380, "invest": 560},
+      {"data": "2026-01-07", "sessoes": 1340, "invest": 540},
+      {"data": "2026-01-08", "sessoes": 1250, "invest": 510},
+      {"data": "2026-01-09", "sessoes": 1300, "invest": 530},
+      {"data": "2026-01-10", "sessoes": 1180, "invest": 490},
+      {"data": "2026-01-11", "sessoes": 1100, "invest": 460},
+      {"data": "2026-01-12", "sessoes": 1450, "invest": 600},
+      {"data": "2026-01-13", "sessoes": 1520, "invest": 620},
+      {"data": "2026-01-14", "sessoes": 1480, "invest": 610},
+      {"data": "2026-01-15", "sessoes": 1550, "invest": 630},
+      {"data": "2026-01-16", "sessoes": 1490, "invest": 615},
+      {"data": "2026-01-17", "sessoes": 1410, "invest": 590},
+      {"data": "2026-01-18", "sessoes": 1200, "invest": 500},
+      {"data": "2026-01-19", "sessoes": 1580, "invest": 640},
+      {"data": "2026-01-20", "sessoes": 1620, "invest": 660},
+      {"data": "2026-01-21", "sessoes": 1550, "invest": 635},
+      {"data": "2026-01-22", "sessoes": 1600, "invest": 650},
+      {"data": "2026-01-23", "sessoes": 1530, "invest": 625},
+      {"data": "2026-01-24", "sessoes": 1350, "invest": 555},
+      {"data": "2026-01-25", "sessoes": 1250, "invest": 510},
+      {"data": "2026-01-26", "sessoes": 1680, "invest": 680},
+      {"data": "2026-01-27", "sessoes": 1720, "invest": 700},
+      {"data": "2026-01-28", "sessoes": 1650, "invest": 670},
+      {"data": "2026-01-29", "sessoes": 1580, "invest": 640},
+      {"data": "2026-01-30", "sessoes": 1480, "invest": 610},
+      {"data": "2026-01-31", "sessoes": 1250, "invest": 520}
+    ]
+  },
+
+  "insights": [
+    {
+      "tipo": "positivo",
+      "titulo": "Google Shopping Vestidos e o campeao de conversoes",
+      "descricao": "CPA de R$ 213 — 21% abaixo da media. Oportunidade para aumentar budget."
+    },
+    {
+      "tipo": "atencao",
+      "titulo": "Meta Ads tem CTR alto mas CPA elevado",
+      "descricao": "CTR de 2.78% (acima do benchmark) mas CPA de R$ 282. Revisar publico de prospeccao."
+    },
+    {
+      "tipo": "oportunidade",
+      "titulo": "Trafego organico cresceu 18% vs dezembro",
+      "descricao": "11.200 sessoes organicas. Investir em conteudo pode ampliar esse canal sem custo de midia."
+    }
+  ]
+}

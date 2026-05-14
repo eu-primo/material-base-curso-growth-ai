@@ -1,0 +1,174 @@
+<!--
+  Template Simples — Workshop Claude Code + Marketing APIs
+  Versao minimalista para quem quer algo limpo e rapido.
+  Altere os dados no const D e abra no navegador.
+-->
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Report Mensal</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: system-ui, -apple-system, sans-serif; background: #fff; color: #1a1a1a; padding: 40px; max-width: 960px; margin: auto; }
+  h1 { font-size: 1.6rem; font-weight: 700; }
+  .period { color: #666; font-size: 0.95rem; margin-top: 4px; }
+  hr { border: none; border-top: 1px solid #e0e0e0; margin: 24px 0; }
+
+  /* KPI cards */
+  .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 32px; }
+  .kpi { background: #f7f8fa; border-radius: 10px; padding: 20px; text-align: center; }
+  .kpi .label { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.5px; color: #888; margin-bottom: 6px; }
+  .kpi .value { font-size: 1.5rem; font-weight: 700; }
+
+  /* Charts */
+  .charts { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 32px; }
+  .chart-box { background: #f7f8fa; border-radius: 10px; padding: 20px; }
+  .chart-box h2 { font-size: 0.95rem; font-weight: 600; margin-bottom: 12px; }
+  canvas { width: 100% !important; }
+
+  footer { text-align: center; font-size: 0.8rem; color: #aaa; padding-top: 12px; }
+
+  @media (max-width: 700px) {
+    .kpis { grid-template-columns: repeat(2, 1fr); }
+    .charts { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<h1>Report Mensal &mdash; Arqplace</h1>
+<p class="period">01 a 28 de fevereiro de 2026</p>
+<hr>
+
+<div class="kpis" id="kpis"></div>
+
+<div class="charts">
+  <div class="chart-box">
+    <h2>Investimento por Canal</h2>
+    <canvas id="chartCanais"></canvas>
+  </div>
+  <div class="chart-box">
+    <h2>Sess&otilde;es Di&aacute;rias</h2>
+    <canvas id="chartSessoes"></canvas>
+  </div>
+</div>
+
+<footer>Gerado em <span id="dataGeracao"></span></footer>
+
+<script>
+// ============================================================
+// DADOS — altere aqui com seus valores reais
+// ============================================================
+const D = {
+  // KPIs do mes
+  investimento: 52340,    // total investido em midia (R$)
+  sessoes:      38420,    // sessoes GA4 no periodo
+  leads:        312,      // leads captados (Leadrive / CRM)
+  roas:         14.8,     // ROAS = GMV / Investimento
+
+  // Investimento por canal (R$)
+  canais: {
+    labels: ["Google Ads", "Meta Ads", "Pinterest"],
+    valores: [40800, 9200, 2340],           // valores em R$
+    cores:   ["#4285F4", "#E1306C", "#E60023"]
+  },
+
+  // Sessoes diarias (ultimos 28 dias — fev/2026)
+  sessoesDiarias: {
+    labels: Array.from({length: 28}, (_, i) => `${i + 1}/02`),
+    valores: [
+      1280, 1350, 1420, 1100, 980, 1150, 1300,
+      1410, 1520, 1380, 1200, 1050, 1170, 1330,
+      1450, 1510, 1600, 1390, 1210, 1080, 1250,
+      1370, 1480, 1550, 1620, 1400, 1230, 1350
+    ]
+  }
+};
+
+// ============================================================
+// KPI CARDS
+// ============================================================
+const fmt = (v, tipo) => {
+  if (tipo === "moeda") return "R$ " + v.toLocaleString("pt-BR");
+  if (tipo === "numero") return v.toLocaleString("pt-BR");
+  if (tipo === "x") return v.toFixed(1) + "x";
+  return v;
+};
+
+const kpis = [
+  { label: "Investimento", value: D.investimento, tipo: "moeda" },
+  { label: "Sess\u00f5es",     value: D.sessoes,      tipo: "numero" },
+  { label: "Leads",        value: D.leads,        tipo: "numero" },
+  { label: "ROAS",         value: D.roas,         tipo: "x" }
+];
+
+document.getElementById("kpis").innerHTML = kpis.map(k =>
+  `<div class="kpi">
+     <div class="label">${k.label}</div>
+     <div class="value">${fmt(k.value, k.tipo)}</div>
+   </div>`
+).join("");
+
+// ============================================================
+// GRAFICOS
+// ============================================================
+const baseOpts = {
+  responsive: true,
+  plugins: { legend: { display: false } },
+  scales: { y: { beginAtZero: true, grid: { color: "#eee" } }, x: { grid: { display: false } } }
+};
+
+// Barras — Investimento por Canal
+new Chart(document.getElementById("chartCanais"), {
+  type: "bar",
+  data: {
+    labels: D.canais.labels,
+    datasets: [{
+      data: D.canais.valores,
+      backgroundColor: D.canais.cores,
+      borderRadius: 6,
+      maxBarThickness: 60
+    }]
+  },
+  options: {
+    ...baseOpts,
+    scales: {
+      ...baseOpts.scales,
+      y: { ...baseOpts.scales.y, ticks: { callback: v => "R$ " + (v / 1000).toFixed(0) + "k" } }
+    }
+  }
+});
+
+// Linha — Sessoes Diarias
+new Chart(document.getElementById("chartSessoes"), {
+  type: "line",
+  data: {
+    labels: D.sessoesDiarias.labels,
+    datasets: [{
+      data: D.sessoesDiarias.valores,
+      borderColor: "#4285F4",
+      backgroundColor: "rgba(66,133,244,0.08)",
+      fill: true,
+      tension: 0.3,
+      pointRadius: 0,
+      borderWidth: 2
+    }]
+  },
+  options: {
+    ...baseOpts,
+    scales: {
+      ...baseOpts.scales,
+      x: { ...baseOpts.scales.x, ticks: { maxTicksToShow: 7, maxRotation: 0 } }
+    }
+  }
+});
+
+// Data de geracao
+document.getElementById("dataGeracao").textContent =
+  new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" });
+</script>
+</body>
+</html>

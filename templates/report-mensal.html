@@ -1,0 +1,419 @@
+<!--
+  Template de Report de Performance — Workshop Claude Code + Marketing APIs
+
+  Como usar:
+  1. Peca ao Claude Code para coletar dados das APIs (Meta, Google, GA4)
+  2. Peca para preencher o const D com os dados coletados
+  3. Abra este arquivo no navegador
+
+  Personalizacao:
+  - Cores: altere as CSS custom properties no :root
+  - Graficos: modifique os objetos Chart.js no script
+  - Layout: edite o HTML das sections
+-->
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Report de Performance</title>
+<style>
+  /* ── Paleta de cores (altere aqui para personalizar) ── */
+  :root {
+    --color-primary: #3B82F6;
+    --color-bg: #0F172A;
+    --color-card: #1E293B;
+    --color-text: #E2E8F0;
+    --color-muted: #94A3B8;
+    --color-border: #334155;
+    --color-success: #22C55E;
+    --color-warning: #F59E0B;
+    --color-danger: #EF4444;
+    --radius: 12px;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--color-bg); color: var(--color-text);
+    line-height: 1.6; padding: 24px; max-width: 1200px; margin: 0 auto;
+  }
+  /* ── Header ── */
+  .header { text-align: center; margin-bottom: 32px; }
+  .header h1 { font-size: 1.75rem; font-weight: 700; margin-bottom: 4px; }
+  .header .subtitle { color: var(--color-muted); font-size: 1rem; }
+  /* ── KPI bar (topo) ── */
+  .kpi-bar {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px; margin-bottom: 32px;
+  }
+  .kpi-bar .kpi {
+    background: var(--color-card); border-radius: var(--radius);
+    padding: 16px; text-align: center; border: 1px solid var(--color-border);
+  }
+  .kpi-bar .kpi .label { font-size: 0.75rem; color: var(--color-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+  .kpi-bar .kpi .value { font-size: 1.5rem; font-weight: 700; margin-top: 4px; color: var(--color-primary); }
+  /* ── Section titles ── */
+  .section-title {
+    font-size: 1.1rem; font-weight: 600; margin: 32px 0 16px;
+    padding-bottom: 8px; border-bottom: 2px solid var(--color-border);
+  }
+  /* ── Card grid ── */
+  .card-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px;
+  }
+  .card {
+    background: var(--color-card); border-radius: var(--radius);
+    padding: 20px; border: 1px solid var(--color-border);
+  }
+  .card .card-label { font-size: 0.75rem; color: var(--color-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+  .card .card-value { font-size: 1.35rem; font-weight: 700; margin-top: 6px; }
+  /* ── Chart grid (2 colunas) ── */
+  .chart-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+  }
+  .chart-card {
+    background: var(--color-card); border-radius: var(--radius);
+    padding: 20px; border: 1px solid var(--color-border);
+  }
+  .chart-card h3 { font-size: 0.9rem; color: var(--color-muted); margin-bottom: 12px; }
+  .chart-card canvas { width: 100% !important; max-height: 280px; }
+  /* ── Full-width chart ── */
+  .chart-full {
+    background: var(--color-card); border-radius: var(--radius);
+    padding: 20px; border: 1px solid var(--color-border); margin-top: 16px;
+  }
+  .chart-full h3 { font-size: 0.9rem; color: var(--color-muted); margin-bottom: 12px; }
+  .chart-full canvas { width: 100% !important; height: 260px; }
+  /* ── Tabela ── */
+  .table-wrap { overflow-x: auto; margin-top: 16px; }
+  table {
+    width: 100%; border-collapse: collapse;
+    background: var(--color-card); border-radius: var(--radius); overflow: hidden;
+  }
+  th, td { padding: 10px 14px; text-align: right; font-size: 0.85rem; border-bottom: 1px solid var(--color-border); }
+  th { background: rgba(255,255,255,0.04); color: var(--color-muted); cursor: pointer; user-select: none; white-space: nowrap; }
+  th:hover { color: var(--color-primary); }
+  th::after { content: ' \25B4\25BE'; font-size: 0.6rem; opacity: 0.4; }
+  th.asc::after { content: ' \25B4'; opacity: 1; color: var(--color-primary); }
+  th.desc::after { content: ' \25BE'; opacity: 1; color: var(--color-primary); }
+  td:first-child, th:first-child { text-align: left; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(255,255,255,0.02); }
+  /* ── Insights ── */
+  .insights-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; margin-top: 16px; }
+  .insight-card {
+    background: var(--color-card); border-radius: var(--radius);
+    padding: 16px 20px; border: 1px solid var(--color-border);
+    border-left: 4px solid var(--color-primary);
+  }
+  .insight-card.success { border-left-color: var(--color-success); }
+  .insight-card.warning { border-left-color: var(--color-warning); }
+  .insight-card.danger  { border-left-color: var(--color-danger); }
+  .insight-card h4 { font-size: 0.85rem; font-weight: 600; margin-bottom: 6px; }
+  .insight-card p  { font-size: 0.82rem; color: var(--color-muted); }
+  /* ── Footer ── */
+  .footer { text-align: center; color: var(--color-muted); font-size: 0.75rem; margin-top: 40px; padding-top: 16px; border-top: 1px solid var(--color-border); }
+  /* ── Responsivo ── */
+  @media (max-width: 768px) {
+    body { padding: 12px; }
+    .chart-grid { grid-template-columns: 1fr; }
+    .header h1 { font-size: 1.3rem; }
+    .kpi-bar .kpi .value { font-size: 1.2rem; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ════════════════ HEADER ════════════════ -->
+<div class="header">
+  <h1 id="report-title"></h1>
+  <div class="subtitle" id="report-subtitle"></div>
+</div>
+
+<!-- ════════════════ KPI BAR (TOPO) ════════════════ -->
+<div class="kpi-bar" id="kpi-bar"></div>
+
+<!-- ════════════════ SECTION 1: KPI CARDS ════════════════ -->
+<h2 class="section-title">Investimento e Eficiencia</h2>
+<div class="card-grid" id="card-grid"></div>
+
+<!-- ════════════════ SECTION 2: GRAFICOS LADO A LADO ════════════════ -->
+<h2 class="section-title">Distribuicao por Canal</h2>
+<div class="chart-grid">
+  <div class="chart-card"><h3>Investimento por Canal</h3><canvas id="chartInvest"></canvas></div>
+  <div class="chart-card"><h3>Sessoes por Canal</h3><canvas id="chartSessoes"></canvas></div>
+</div>
+
+<!-- ════════════════ SECTION 3: EVOLUCAO DIARIA ════════════════ -->
+<h2 class="section-title">Evolucao Diaria</h2>
+<div class="chart-full"><h3>Sessoes e Investimento — Ultimos 30 dias</h3><canvas id="chartDaily"></canvas></div>
+
+<!-- ════════════════ SECTION 4: TABELA ════════════════ -->
+<h2 class="section-title">Performance por Campanha</h2>
+<div class="table-wrap"><table id="campaign-table"><thead></thead><tbody></tbody></table></div>
+
+<!-- ════════════════ SECTION 5: INSIGHTS ════════════════ -->
+<h2 class="section-title">Insights</h2>
+<div class="insights-grid" id="insights-grid"></div>
+
+<!-- ════════════════ FOOTER ════════════════ -->
+<div class="footer" id="footer"></div>
+
+<!-- ── CDN Chart.js + plugin datalabels ── -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+
+<script>
+/* ================================================================
+   DADOS — Substitua este objeto pelos dados reais coletados.
+   O Claude Code pode preencher automaticamente via APIs.
+   ================================================================ */
+const D = {
+  // ── Cabecalho ──
+  titulo: "Report de Performance — Janeiro/2026",
+  subtitulo: "Loja Exemplo",
+
+  // ── KPI bar (metricas-resumo do topo) ──
+  kpiBar: [
+    { label: "Investimento Total", valor: 42500.00, formato: "brl" },
+    { label: "Sessoes",            valor: 38420,    formato: "num" },
+    { label: "Leads",              valor: 612,      formato: "num" },
+    { label: "Conversoes",         valor: 87,       formato: "num" },
+    { label: "CPA",                valor: 488.51,   formato: "brl" },
+  ],
+
+  // ── Cards de KPI (Section 1) ──
+  cards: [
+    { label: "Invest. Google Ads", valor: 28900.00,  formato: "brl" },
+    { label: "Invest. Meta Ads",   valor: 13600.00,  formato: "brl" },
+    { label: "Invest. Total",      valor: 42500.00,  formato: "brl" },
+    { label: "CPC Medio",          valor: 1.87,      formato: "brl" },
+    { label: "CTR Medio",          valor: 3.42,      formato: "pct" },
+  ],
+
+  // ── Investimento por canal (grafico de barras horizontais) ──
+  investCanal: {
+    labels: ["Google Ads", "Meta Ads", "Pinterest"],
+    valores: [28900, 13600, 0],       // R$ por canal
+  },
+
+  // ── Sessoes por canal (doughnut) ──
+  sessoesCanal: {
+    labels: ["Google / CPC", "Meta / Social", "Organico", "Direto", "Outros"],
+    valores: [18200, 8900, 6100, 3820, 1400],
+  },
+
+  // ── Evolucao diaria (line chart — 30 dias) ──
+  diario: {
+    // Datas no formato "DD/MM"
+    labels: Array.from({length: 30}, (_, i) => {
+      const d = new Date(2026, 0, i + 1);
+      return String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0');
+    }),
+    // Sessoes por dia (array de 30 valores)
+    sessoes: [980,1120,1340,1180,1050,890,720,1210,1350,1420,1290,1100,1380,1450,1520,1310,1200,1050,880,1340,1490,1560,1380,1220,1100,920,1280,1410,1370,1300],
+    // Investimento por dia (array de 30 valores)
+    invest:  [1200,1350,1500,1400,1300,1100,900,1400,1550,1600,1450,1250,1500,1600,1700,1480,1350,1200,1000,1500,1650,1750,1550,1380,1250,1050,1450,1580,1520,1430],
+  },
+
+  // ── Tabela de campanhas ──
+  //    Cada objeto = uma linha. Colunas: campanha, spend, clicks, impressions, ctr, cpc, conversoes
+  campanhas: [
+    { campanha: "Google | Search | Marca",          spend: 8200,  clicks: 5400,  impressions: 72000,  ctr: 7.50, cpc: 1.52, conversoes: 32 },
+    { campanha: "Google | Shopping | Catalogo",      spend: 12400, clicks: 6800,  impressions: 145000, ctr: 4.69, cpc: 1.82, conversoes: 28 },
+    { campanha: "Google | PMax | Geral",             spend: 8300,  clicks: 3200,  impressions: 98000,  ctr: 3.27, cpc: 2.59, conversoes: 12 },
+    { campanha: "Meta | Conversao | Lookalike",      spend: 7600,  clicks: 4100,  impressions: 112000, ctr: 3.66, cpc: 1.85, conversoes: 9  },
+    { campanha: "Meta | Trafego | Retargeting",      spend: 3800,  clicks: 2900,  impressions: 54000,  ctr: 5.37, cpc: 1.31, conversoes: 4  },
+    { campanha: "Meta | Engajamento | Conteudo",     spend: 2200,  clicks: 1800,  impressions: 68000,  ctr: 2.65, cpc: 1.22, conversoes: 2  },
+  ],
+
+  // ── Insights (cards com borda colorida) ──
+  //    tipo: "success" | "warning" | "danger"
+  insights: [
+    { tipo: "success", titulo: "CTR acima da media",      texto: "A campanha Google Search Marca atingiu 7.5% de CTR, bem acima da media do setor (3-4%). Manter e expandir budget." },
+    { tipo: "warning", titulo: "CPA elevado no PMax",     texto: "Google PMax apresenta CPA de R$ 691 contra meta de R$ 500. Revisar segmentacao de audiencia e assets criativos." },
+    { tipo: "danger",  titulo: "Meta Engajamento baixo",  texto: "Campanha de engajamento tem apenas 2 conversoes com R$ 2.200 investidos. Considerar pausar ou reformular criativos." },
+  ],
+};
+
+/* ================================================================
+   HELPERS — Formatacao e utilidades
+   ================================================================ */
+const fmtBRL = v => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+const fmtNum = v => v.toLocaleString('pt-BR');
+const fmtPct = v => v.toFixed(2).replace('.', ',') + '%';
+const fmt = (v, f) => f === 'brl' ? fmtBRL(v) : f === 'pct' ? fmtPct(v) : fmtNum(v);
+
+// Paleta de cores derivada da primary
+const PALETTE = ['#3B82F6', '#8B5CF6', '#22C55E', '#F59E0B', '#EF4444', '#06B6D4', '#EC4899'];
+const cs = getComputedStyle(document.documentElement);
+const TEXT_COLOR = cs.getPropertyValue('--color-text').trim() || '#E2E8F0';
+const MUTED      = cs.getPropertyValue('--color-muted').trim() || '#94A3B8';
+const GRID_COLOR = cs.getPropertyValue('--color-border').trim() || '#334155';
+
+// Config global Chart.js
+Chart.defaults.color = TEXT_COLOR;
+Chart.defaults.font.family = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+Chart.defaults.font.size = 12;
+Chart.register(ChartDataLabels);
+
+/* ================================================================
+   RENDER — Preenche o HTML com dados de D
+   ================================================================ */
+document.addEventListener('DOMContentLoaded', () => {
+  // ── Header ──
+  document.getElementById('report-title').textContent = D.titulo;
+  document.getElementById('report-subtitle').textContent = D.subtitulo;
+
+  // ── KPI bar ──
+  const kpiBarEl = document.getElementById('kpi-bar');
+  D.kpiBar.forEach(k => {
+    kpiBarEl.innerHTML += `<div class="kpi"><div class="label">${k.label}</div><div class="value">${fmt(k.valor, k.formato)}</div></div>`;
+  });
+
+  // ── Cards grid ──
+  const cardGrid = document.getElementById('card-grid');
+  D.cards.forEach(c => {
+    cardGrid.innerHTML += `<div class="card"><div class="card-label">${c.label}</div><div class="card-value">${fmt(c.valor, c.formato)}</div></div>`;
+  });
+
+  // ── Chart: Investimento por Canal (horizontal bar) ──
+  new Chart(document.getElementById('chartInvest'), {
+    type: 'bar',
+    data: {
+      labels: D.investCanal.labels,
+      datasets: [{
+        data: D.investCanal.valores,
+        backgroundColor: PALETTE.slice(0, D.investCanal.labels.length),
+        borderRadius: 6, barThickness: 28,
+      }],
+    },
+    options: {
+      indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        datalabels: { anchor: 'end', align: 'end', color: TEXT_COLOR, font: { weight: 'bold', size: 11 }, formatter: v => fmtBRL(v) },
+      },
+      scales: {
+        x: { grid: { color: GRID_COLOR }, ticks: { callback: v => fmtBRL(v) } },
+        y: { grid: { display: false } },
+      },
+    },
+  });
+
+  // ── Chart: Sessoes por Canal (doughnut) ──
+  new Chart(document.getElementById('chartSessoes'), {
+    type: 'doughnut',
+    data: {
+      labels: D.sessoesCanal.labels,
+      datasets: [{
+        data: D.sessoesCanal.valores,
+        backgroundColor: PALETTE.slice(0, D.sessoesCanal.labels.length),
+        borderWidth: 0,
+      }],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, cutout: '55%',
+      plugins: {
+        legend: { position: 'bottom', labels: { padding: 12, usePointStyle: true, pointStyle: 'circle' } },
+        datalabels: { color: '#fff', font: { weight: 'bold', size: 11 }, formatter: (v, ctx) => {
+          const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
+          return ((v / total) * 100).toFixed(0) + '%';
+        }},
+      },
+    },
+  });
+
+  // ── Chart: Evolucao diaria (line) ──
+  new Chart(document.getElementById('chartDaily'), {
+    type: 'line',
+    data: {
+      labels: D.diario.labels,
+      datasets: [
+        {
+          label: 'Sessoes', data: D.diario.sessoes, yAxisID: 'y',
+          borderColor: PALETTE[0], backgroundColor: PALETTE[0] + '20',
+          fill: true, tension: 0.3, pointRadius: 2, borderWidth: 2,
+        },
+        {
+          label: 'Investimento (R$)', data: D.diario.invest, yAxisID: 'y1',
+          borderColor: PALETTE[1], backgroundColor: 'transparent',
+          borderDash: [5, 3], tension: 0.3, pointRadius: 2, borderWidth: 2,
+        },
+      ],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { datalabels: { display: false }, legend: { labels: { usePointStyle: true, pointStyle: 'circle' } } },
+      scales: {
+        x: { grid: { color: GRID_COLOR }, ticks: { maxRotation: 45, autoSkip: true, maxTicksLimit: 15 } },
+        y:  { position: 'left',  grid: { color: GRID_COLOR }, title: { display: true, text: 'Sessoes', color: MUTED } },
+        y1: { position: 'right', grid: { drawOnChartArea: false }, title: { display: true, text: 'Investimento (R$)', color: MUTED }, ticks: { callback: v => fmtBRL(v) } },
+      },
+    },
+  });
+
+  // ── Tabela de campanhas ──
+  renderTable();
+
+  // ── Insights ──
+  const insGrid = document.getElementById('insights-grid');
+  D.insights.forEach(ins => {
+    insGrid.innerHTML += `<div class="insight-card ${ins.tipo}"><h4>${ins.titulo}</h4><p>${ins.texto}</p></div>`;
+  });
+
+  // ── Footer ──
+  const now = new Date();
+  document.getElementById('footer').textContent = `Gerado em ${now.toLocaleDateString('pt-BR')} as ${now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })} — Workshop Claude Code + Marketing APIs`;
+});
+
+/* ================================================================
+   TABELA SORTAVEL — Clique no header para ordenar
+   ================================================================ */
+const COLS = [
+  { key: 'campanha',   label: 'Campanha',   fmt: v => v },
+  { key: 'spend',      label: 'Spend',      fmt: fmtBRL },
+  { key: 'clicks',     label: 'Clicks',     fmt: fmtNum },
+  { key: 'impressions',label: 'Impressions', fmt: fmtNum },
+  { key: 'ctr',        label: 'CTR',        fmt: fmtPct },
+  { key: 'cpc',        label: 'CPC',        fmt: fmtBRL },
+  { key: 'conversoes', label: 'Conversoes', fmt: fmtNum },
+];
+let sortCol = 'spend';
+let sortDir = 'desc';
+
+function renderTable() {
+  const table = document.getElementById('campaign-table');
+  const thead = table.querySelector('thead');
+  const tbody = table.querySelector('tbody');
+
+  // Header
+  thead.innerHTML = '<tr>' + COLS.map(c =>
+    `<th data-col="${c.key}" class="${c.key === sortCol ? sortDir : ''}">${c.label}</th>`
+  ).join('') + '</tr>';
+
+  // Sorting
+  const sorted = [...D.campanhas].sort((a, b) => {
+    const av = a[sortCol], bv = b[sortCol];
+    if (typeof av === 'string') return sortDir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av);
+    return sortDir === 'asc' ? av - bv : bv - av;
+  });
+
+  // Rows
+  tbody.innerHTML = sorted.map(row =>
+    '<tr>' + COLS.map(c => `<td>${c.fmt(row[c.key])}</td>`).join('') + '</tr>'
+  ).join('');
+
+  // Click handlers
+  thead.querySelectorAll('th').forEach(th => {
+    th.addEventListener('click', () => {
+      const col = th.dataset.col;
+      if (col === sortCol) { sortDir = sortDir === 'asc' ? 'desc' : 'asc'; }
+      else { sortCol = col; sortDir = 'desc'; }
+      renderTable();
+    });
+  });
+}
+</script>
+</body>
+</html>

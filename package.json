@@ -1,0 +1,29 @@
+{
+  "name": "material-base-curso-growth-ai",
+  "version": "1.0.0",
+  "description": "Material base do curso Growth Marketing com IA — guias, prompts e scripts para automatizar reports e analises de marketing usando Claude Code com APIs do Meta Ads, Google Ads, GA4, Sheets e Notion.",
+  "main": "index.js",
+  "scripts": {
+    "test:sheets": "node scripts/test-sheets.js",
+    "test:notion": "node scripts/test-notion.js",
+    "test:google-ads": "node scripts/test-google-ads.js"
+  },
+  "keywords": [
+    "marketing",
+    "growth",
+    "claude-code",
+    "meta-ads",
+    "google-ads",
+    "ga4",
+    "automation"
+  ],
+  "author": "GrowthEx",
+  "license": "MIT",
+  "dependencies": {
+    "@google-analytics/data": "^5.2.1",
+    "@notionhq/client": "^5.16.0",
+    "dotenv": "^17.3.1",
+    "google-ads-api": "^23.0.0",
+    "googleapis": "^171.4.0"
+  }
+}

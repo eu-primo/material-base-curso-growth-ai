@@ -1,0 +1,57 @@
+# ============================================================
+# SEGURANCA: Credenciais e segredos
+# ============================================================
+.env
+.env.*
+!.env.example
+
+# Service accounts e chaves
+*-service-account.json
+google-services.json
+credentials*.json
+*.key
+*.pem
+*.p12
+
+# MCP config com tokens reais (use .mcp.json.example como referencia)
+.mcp.json
+
+# Tokens, webhooks, credenciais soltas em .txt
+*token*.txt
+*webhook*.txt
+*secret*.txt
+*credentials*.txt
+
+# OAuth flow (gerados pelo proprio aluno)
+oauth-credentials.json
+oauth-token.json
+
+# ============================================================
+# Sistema operacional
+# ============================================================
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# ============================================================
+# Node.js
+# ============================================================
+node_modules/
+package-lock.json
+
+# ============================================================
+# Python (caso use scripts Python)
+# ============================================================
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# ============================================================
+# Claude Code (config local do aluno)
+# ============================================================
+.claude/
+.agents/
+skills-lock.json

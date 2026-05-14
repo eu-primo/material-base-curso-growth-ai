@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "windsor": {
+      "command": "mcp-proxy",
+      "args": [
+        "https://mcp.windsor.ai/",
+        "--transport=streamablehttp"
+      ],
+      "env": {
+        "API_ACCESS_TOKEN": "cole_seu_token_windsor_aqui"
+      }
+    }
+  }
+}
