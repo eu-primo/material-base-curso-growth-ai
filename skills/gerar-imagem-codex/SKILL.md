@@ -58,13 +58,28 @@ O Codex renderiza texto bem, mas para acertar:
 
 ## Imagem de referência (opcional)
 
-Para gerar a partir de um criativo de referência, anexe a imagem com `-i`:
+Para gerar a partir de um criativo de referência, anexe a imagem com `-i`.
+
+> ⚠️ **A ordem importa.** A flag `-i, --image <FILE>...` é **variádica** (aceita vários arquivos). Se o prompt vier **depois** do `-i`, o Codex trata o prompt como mais um arquivo de imagem e falha com `No prompt provided via stdin`. **Coloque o prompt ANTES do `-i`** (deixe o `-i` por último):
 
 ```bash
-codex exec --skip-git-repo-check -C "<output-codex>" -s workspace-write \
-  -i "/caminho/referencia.png" \
-  "Crie um criativo seguindo a estrutura/cores da imagem de referência anexa, mas com o texto 'MINHA COPY'. Salve como criativo.png, tamanho 1024x1280."
+codex exec --skip-git-repo-check --ephemeral -C "<output-codex>" -s workspace-write \
+  "Crie um criativo seguindo a estrutura/cores da imagem de referência anexa, mas com o texto 'MINHA COPY'. Salve como criativo.png, tamanho 1024x1280." \
+  -i "/caminho/referencia.png"
 ```
+
+## Troubleshooting
+
+**`Error finding codex home: CODEX_HOME points to ".../.codex", but that path does not exist`**
+A variável de ambiente `CODEX_HOME` está apontando pra uma pasta `.codex` que não existe (comum quando há um alias no `~/.zshrc` tipo `alias codex='CODEX_HOME="$PWD/.codex" codex'`, que troca o home do Codex pela pasta do projeto atual). O login fica em `~/.codex/auth.json` — se o `CODEX_HOME` apontar pra outro lugar, o Codex não acha o login.
+- **Contorno:** chame o **binário direto** (ignora o alias) com o `CODEX_HOME` correto:
+  ```bash
+  CODEX_HOME="$HOME/.codex" /opt/homebrew/bin/codex exec ...
+  ```
+  > Passar só `CODEX_HOME=... codex` **não** resolve se houver alias — o alias re-expande e sobrescreve a variável. Por isso usa-se o caminho completo do binário.
+
+**`No prompt provided via stdin`** (ao usar `-i`)
+Ordem dos argumentos: o prompt precisa vir **antes** do `-i`. Ver seção "Imagem de referência" acima.
 
 ## Conexão com a skill de criativos
 
