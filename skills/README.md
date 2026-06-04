@@ -10,13 +10,18 @@ arquivo `SKILL.md` dentro). Para usar, você instala a pasta no seu Claude Code.
 | [`criativos-meta-ia/`](criativos-meta-ia/) | Gera a copy do anúncio + um prompt pronto pro GPT Image 2, a partir de um briefing e/ou criativo de referência. | Só o Claude Code |
 | [`gerar-imagem-codex/`](gerar-imagem-codex/) | Gera a imagem direto no terminal pelo Codex CLI (sem ir no ChatGPT do navegador). | Claude Code + **Codex CLI** logado |
 
-## Como instalar
+## Como instalar (o próprio Claude instala pra você)
 
-Passo a passo completo (vale pra qualquer skill) em:
-👉 **[COMO-INSTALAR-UMA-SKILL.md](COMO-INSTALAR-UMA-SKILL.md)**
+1. **Baixe** a pasta da skill (veja a seção abaixo) e descompacte num lugar fácil
+   de achar (ex.: a Área de Trabalho / Desktop).
+2. Abra o **Claude Code** dentro dessa pasta.
+3. **Cole esta mensagem pro Claude:**
 
-Resumo: baixe a pasta da skill, abra o Claude Code nela e peça pro próprio Claude
-mover pra `~/.claude/skills/`. Reinicie o Claude Code e pronto.
+   > Instala essa skill pra mim como skill global do Claude Code. Move a pasta da
+   > skill (com tudo que está dentro) pra `~/.claude/skills/`. Cria a pasta se não
+   > existir e me confirma quando terminar.
+
+4. **Reinicie o Claude Code.** Pronto — digite `/` e a skill aparece na lista.
 
 ## Como baixar só uma pasta do GitHub
 
