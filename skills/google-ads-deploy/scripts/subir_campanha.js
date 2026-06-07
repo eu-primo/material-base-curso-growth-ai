@@ -141,7 +141,7 @@ function resumo(plano) {
     `Idiomas:      ${(c.idiomas || ['pt']).join(', ')}`,
     `Neg. campanha:${(c.negativas_campanha || []).length}`,
     `Grupos:       ${grupos.length}  |  Keywords: ${totalKw}  |  Anúncios: ${totalAds}`,
-    `Extensões:    ${(ext.callouts || []).length} callouts, ${(ext.sitelinks || []).length} sitelinks`,
+    `Extensões:    ${(ext.callouts || []).length} callouts, ${(ext.sitelinks || []).length} sitelinks, ${(ext.structured_snippets || []).length} structured snippets`,
     `Pendências:   ${(plano.ativos_externos_pendentes || []).join(', ') || 'nenhuma'}`,
   ];
   grupos.forEach((g) => {
@@ -169,10 +169,47 @@ function camposLance(c) {
   }
 }
 
+// Resolve uma localização para o resource_name do geo target constant.
+// Usa criteria_id se houver; senão, resolve pelo NOME via GAQL (o que o contrato promete).
+// Retorna null se não conseguir resolver — o chamador aborta para nunca mirar o país inteiro sem querer.
+async function resolverGeo(customer, loc) {
+  if (loc.criteria_id) return `geoTargetConstants/${loc.criteria_id}`;
+  if (!loc.nome) return null;
+  const norm = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const partes = String(loc.nome).split(',').map((s) => s.trim()).filter(Boolean);
+  const cidade = partes[0].replace(/'/g, "\\'");
+  const rows = await customer.query(
+    `SELECT geo_target_constant.id, geo_target_constant.canonical_name, geo_target_constant.target_type
+     FROM geo_target_constant
+     WHERE geo_target_constant.name = '${cidade}'
+       AND geo_target_constant.country_code = 'BR'
+       AND geo_target_constant.status = 'ENABLED'`);
+  if (!rows.length) return null;
+  // desempate: preferir o resultado cujo canonical_name contém as demais partes (ex.: o estado)
+  const extras = partes.slice(1).map(norm).filter((p) => p && !['brasil', 'brazil'].includes(p));
+  let best = rows[0];
+  if (extras.length) {
+    const m = rows.find((r) => extras.every((e) => norm(r.geo_target_constant.canonical_name).includes(e)));
+    if (m) best = m;
+  }
+  return `geoTargetConstants/${best.geo_target_constant.id}`;
+}
+
 async function executar(plano, customer, enums, manual) {
   const c = plano.campanha;
   const idCurto = (rn) => String(rn).split('/').pop();
   const criados = { campanha: null, campanhaId: null, grupos: [], avisosExt: [] };
+
+  // 0) Resolver localizações ANTES de criar qualquer coisa (evita campanha sem geo e criação parcial)
+  const geoRns = [];
+  for (const l of (c.localizacoes || [])) {
+    const rn = await resolverGeo(customer, l);
+    if (!rn) throw new Error(`Localização não resolvida: "${l.nome || l.criteria_id}". Informe um criteria_id válido no documento (https://developers.google.com/google-ads/api/data/geotargets).`);
+    geoRns.push(rn);
+  }
+  if ((c.localizacoes || []).length && !geoRns.length) {
+    throw new Error('Nenhuma localização aplicável — abortando para não veicular no país inteiro.');
+  }
 
   // 1) Orçamento
   const orc = await customer.campaignBudgets.create([{
@@ -183,29 +220,37 @@ async function executar(plano, customer, enums, manual) {
   }]);
   const budgetRn = orc.results[0].resource_name;
 
-  // 2) Campanha (PAUSED, Rede de Pesquisa pura)
-  const camp = await customer.campaigns.create([{
-    name: c.nome,
-    advertising_channel_type: enums.AdvertisingChannelType.SEARCH,
-    status: enums.CampaignStatus.PAUSED,
-    campaign_budget: budgetRn,
-    network_settings: {
-      target_google_search: c.rede?.google_search !== false,
-      target_search_network: false,
-      target_content_network: false,
-      target_partner_search_network: false,
-    },
-    ...camposLance(c),
-  }]);
-  const campRn = camp.results[0].resource_name;
+  // 2) Campanha (PAUSED, Rede de Pesquisa pura). Se falhar, faz rollback do orçamento.
+  let campRn;
+  try {
+    const camp = await customer.campaigns.create([{
+      name: c.nome,
+      advertising_channel_type: enums.AdvertisingChannelType.SEARCH,
+      status: enums.CampaignStatus.PAUSED,
+      campaign_budget: budgetRn,
+      network_settings: {
+        target_google_search: c.rede?.google_search !== false,
+        target_search_network: false,
+        target_content_network: false,
+        target_partner_search_network: false,
+      },
+      // Requisito da Google Ads API (regulação de propaganda política da UE): campo obrigatório
+      // na criação de campanha. Reports comerciais/imobiliários não contêm propaganda política.
+      contains_eu_political_advertising:
+        enums.EuPoliticalAdvertisingStatus.DOES_NOT_CONTAIN_EU_POLITICAL_ADVERTISING,
+      ...camposLance(c),
+    }]);
+    campRn = camp.results[0].resource_name;
+  } catch (e) {
+    try { await customer.campaignBudgets.remove([budgetRn]); console.error('↩️  Orçamento órfão removido após falha na criação da campanha.'); } catch (_) { /* ignora erro de rollback */ }
+    throw e;
+  }
   criados.campanha = campRn;
   criados.campanhaId = idCurto(campRn);
 
   // 3) Critérios da campanha: região, idioma, negativas
   const critOps = [];
-  (c.localizacoes || []).forEach((l) => {
-    if (l.criteria_id) critOps.push({ campaign: campRn, location: { geo_target_constant: `geoTargetConstants/${l.criteria_id}` } });
-  });
+  geoRns.forEach((rn) => critOps.push({ campaign: campRn, location: { geo_target_constant: rn } }));
   (c.idiomas || ['pt']).forEach((lng) => {
     const id = IDIOMAS[String(lng).toLowerCase()] || IDIOMAS.pt;
     critOps.push({ campaign: campRn, language: { language_constant: `languageConstants/${id}` } });
@@ -271,8 +316,85 @@ async function executar(plano, customer, enums, manual) {
       await customer.campaignAssets.create(as.results.map((r) => ({ campaign: campRn, asset: r.resource_name, field_type: enums.AssetFieldType.SITELINK })));
     }
   } catch (e) { criados.avisosExt.push(`Sitelinks falharam: ${e.message}`); }
+  try {
+    if ((ext.structured_snippets || []).length) {
+      const as = await customer.assets.create(ext.structured_snippets.map((s) => ({
+        structured_snippet_asset: { header: s.header, values: s.values || [] },
+      })));
+      await customer.campaignAssets.create(as.results.map((r) => ({ campaign: campRn, asset: r.resource_name, field_type: enums.AssetFieldType.STRUCTURED_SNIPPET })));
+    }
+  } catch (e) { criados.avisosExt.push(`Structured snippets falharam: ${e.message}`); }
 
   return criados;
+}
+
+// ---------- auto-auditoria pós-criação ----------
+// Re-consulta a campanha recém-criada na conta e confere contra o documento + invariantes de
+// segurança (PAUSED, rede pura, geo presente, zero keyword ampla, limites de caractere). É uma
+// rede de proteção: pega divergência entre o que se quis subir e o que de fato entrou na conta.
+async function autoAuditoria(customer, plano, criados) {
+  const CID = criados.campanhaId;
+  const mt = (v) => ({ 2: 'EXACT', 3: 'PHRASE', 4: 'BROAD' }[v] || v);
+  const passes = []; const falhas = [];
+  const ok = (cond, msg) => (cond ? passes : falhas).push(msg);
+  try {
+    const c = plano.campanha;
+    const cl = (await customer.query(`SELECT campaign.status, campaign.bidding_strategy_type, campaign_budget.amount_micros, campaign.network_settings.target_google_search, campaign.network_settings.target_search_network, campaign.network_settings.target_content_network, campaign.network_settings.target_partner_search_network FROM campaign WHERE campaign.id=${CID}`))[0].campaign;
+    const budget = (await customer.query(`SELECT campaign_budget.amount_micros FROM campaign WHERE campaign.id=${CID}`))[0].campaign_budget.amount_micros;
+    ok(String(cl.status) === '3' || cl.status === 'PAUSED', 'Campanha está PAUSED');
+    ok(cl.network_settings.target_google_search === true, 'Rede de Pesquisa Google ligada');
+    ok(cl.network_settings.target_partner_search_network === false, 'Parceiros de pesquisa OFF');
+    ok(cl.network_settings.target_content_network === false, 'Display OFF');
+    ok(cl.network_settings.target_search_network === false, 'Rede de Pesquisa estendida OFF');
+    ok(Number(budget) === brlParaMicros(c.orcamento_diario_brl), `Orçamento = R$ ${Number(c.orcamento_diario_brl).toFixed(2)}/dia`);
+    // geo presente (não pode estar vazio se o doc pediu localizações)
+    const geo = await customer.query(`SELECT campaign_criterion.location.geo_target_constant FROM campaign_criterion WHERE campaign.id=${CID} AND campaign_criterion.type='LOCATION' AND campaign_criterion.negative=false`);
+    if ((c.localizacoes || []).length) ok(geo.length > 0, `Geo aplicado (${geo.length} região[ões]) — não veicula no país inteiro`);
+    const lang = await customer.query(`SELECT campaign_criterion.language.language_constant FROM campaign_criterion WHERE campaign.id=${CID} AND campaign_criterion.type='LANGUAGE'`);
+    ok(lang.length > 0, `Idioma aplicado (${lang.length})`);
+    const negc = await customer.query(`SELECT campaign_criterion.keyword.text FROM campaign_criterion WHERE campaign.id=${CID} AND campaign_criterion.negative=true AND campaign_criterion.type='KEYWORD'`);
+    ok(negc.length === (c.negativas_campanha || []).length, `Negativas de campanha: ${negc.length}/${(c.negativas_campanha || []).length}`);
+    // keywords por grupo + zero ampla
+    const kw = await customer.query(`SELECT ad_group.name, ad_group_criterion.keyword.match_type, ad_group_criterion.negative FROM ad_group_criterion WHERE campaign.id=${CID} AND ad_group_criterion.type='KEYWORD'`);
+    const docKwTotal = (plano.grupos || []).reduce((s, g) => s + (g.keywords || []).length, 0);
+    const livePos = kw.filter((r) => !r.ad_group_criterion.negative);
+    ok(livePos.length === docKwTotal, `Keywords positivas: ${livePos.length}/${docKwTotal}`);
+    const ampla = livePos.filter((r) => mt(r.ad_group_criterion.keyword.match_type) === 'BROAD');
+    ok(ampla.length === 0, `Zero keyword em correspondência ampla (achou ${ampla.length})`);
+    // anúncios por grupo + limites de caractere ao vivo
+    const ads = await customer.query(`SELECT ad_group.name, ad_group_ad.ad.final_urls, ad_group_ad.ad.responsive_search_ad.headlines, ad_group_ad.ad.responsive_search_ad.descriptions FROM ad_group_ad WHERE campaign.id=${CID}`);
+    const docAdsTotal = (plano.grupos || []).reduce((s, g) => s + (g.anuncios || []).length, 0);
+    ok(ads.length === docAdsTotal, `Anúncios: ${ads.length}/${docAdsTotal}`);
+    let estouro = 0, semUrl = 0;
+    ads.forEach((r) => {
+      const a = r.ad_group_ad.ad;
+      (a.responsive_search_ad.headlines || []).forEach((h) => { if ((h.text || '').length > 30) estouro++; });
+      (a.responsive_search_ad.descriptions || []).forEach((d) => { if ((d.text || '').length > 90) estouro++; });
+      if (!(a.final_urls || []).length) semUrl++;
+    });
+    ok(estouro === 0, `Nenhum texto de anúncio acima do limite (achou ${estouro})`);
+    ok(semUrl === 0, `Todos os anúncios têm final_url (sem url: ${semUrl})`);
+    // extensões
+    const ca = await customer.query(`SELECT campaign.id, campaign_asset.field_type FROM campaign_asset WHERE campaign.id=${CID}`);
+    const cnt = (ft) => ca.filter((r) => String(r.campaign_asset.field_type) === ft || r.campaign_asset.field_type === Number(ft)).length;
+    const ext = plano.extensoes || {};
+    const liveCallout = ca.filter((r) => ['CALLOUT', 11, '11'].includes(r.campaign_asset.field_type)).length;
+    const liveSite = ca.filter((r) => ['SITELINK', 13, '13'].includes(r.campaign_asset.field_type)).length;
+    const liveSnip = ca.filter((r) => ['STRUCTURED_SNIPPET', 12, '12'].includes(r.campaign_asset.field_type)).length;
+    if ((ext.callouts || []).length) ok(liveCallout === ext.callouts.length, `Callouts: ${liveCallout}/${ext.callouts.length}`);
+    if ((ext.sitelinks || []).length) ok(liveSite === ext.sitelinks.length, `Sitelinks: ${liveSite}/${ext.sitelinks.length}`);
+    if ((ext.structured_snippets || []).length) ok(liveSnip === ext.structured_snippets.length, `Structured snippets: ${liveSnip}/${ext.structured_snippets.length}`);
+  } catch (e) {
+    console.log(`\n🔍 AUTO-AUDITORIA: não foi possível concluir (${e.message}). Confira manualmente no painel.`);
+    return;
+  }
+  console.log('\n🔍 AUTO-AUDITORIA (documento × conta ao vivo):');
+  passes.forEach((p) => console.log(`   ✅ ${p}`));
+  falhas.forEach((f) => console.log(`   ❌ ${f}`));
+  console.log(falhas.length
+    ? `   → ${falhas.length} divergência(s). REVISE no painel antes de ativar.`
+    : `   → ${passes.length}/${passes.length} OK. Estrutura na conta confere com o documento.`);
+  console.log('   Obs.: a auditoria FACTUAL (copy x materiais do cliente) é responsabilidade do revisor humano/agente.');
 }
 
 // ---------- main ----------
@@ -292,8 +414,8 @@ async function executar(plano, customer, enums, manual) {
 
   // --list-accounts: lista as contas vinculadas ao MCC e sai (ajuda qualquer aluno a achar o customer_id certo)
   if (args.listAccounts) {
-    const mcc = soDigitos(args.login || process.env.GOOGLE_ADS_MCC_CUSTOMER_ID);
-    if (!mcc) { console.error('❌ Sem MCC (defina GOOGLE_ADS_MCC_CUSTOMER_ID no .env ou use --login).'); process.exit(1); }
+    const mcc = soDigitos(args.login || process.env.GOOGLE_ADS_MCC_CUSTOMER_ID || process.env.GOOGLE_ADS_LOGIN_CUSTOMER_ID);
+    if (!mcc) { console.error('❌ Sem MCC (defina GOOGLE_ADS_MCC_CUSTOMER_ID ou GOOGLE_ADS_LOGIN_CUSTOMER_ID no .env, ou use --login).'); process.exit(1); }
     try {
       const mng = client.Customer({ customer_id: mcc, login_customer_id: mcc, refresh_token: process.env.GOOGLE_ADS_REFRESH_TOKEN });
       const rows = await mng.query(`SELECT customer_client.id, customer_client.descriptive_name, customer_client.manager, customer_client.currency_code FROM customer_client WHERE customer_client.status = 'ENABLED' ORDER BY customer_client.descriptive_name`);
@@ -346,7 +468,7 @@ async function executar(plano, customer, enums, manual) {
 
   // Conexão (client já criado acima)
   const customerId = soDigitos(args.customer || plano.conta?.customer_id || process.env.GOOGLE_ADS_CUSTOMER_ID);
-  const loginId = soDigitos(args.login || plano.conta?.login_customer_id || process.env.GOOGLE_ADS_MCC_CUSTOMER_ID);
+  const loginId = soDigitos(args.login || plano.conta?.login_customer_id || process.env.GOOGLE_ADS_MCC_CUSTOMER_ID || process.env.GOOGLE_ADS_LOGIN_CUSTOMER_ID);
   if (!customerId) { console.error('❌ Sem customer_id (nem no doc, nem no .env GOOGLE_ADS_CUSTOMER_ID).'); process.exit(1); }
 
   const customer = client.Customer({
@@ -377,6 +499,7 @@ async function executar(plano, customer, enums, manual) {
     console.log(`   Campanha ID: ${criados.campanhaId}`);
     criados.grupos.forEach((g) => console.log(`   Grupo "${g.nome}" → ID ${g.id}`));
     criados.avisosExt.forEach((a) => console.log(`   ⚠️  ${a}`));
+    await autoAuditoria(customer, plano, criados);
     console.log(`\n👉 Revise em https://ads.google.com (conta ${customerId}) e ATIVE manualmente quando aprovar.`);
     const pend = plano.ativos_externos_pendentes || [];
     if (pend.length) console.log(`📌 Pendências (ativos externos): ${pend.join(', ')} — adicionar no painel ou via deploy quando tiver os arquivos.`);

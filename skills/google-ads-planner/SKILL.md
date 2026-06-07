@@ -70,8 +70,8 @@ Critérios, sinais de intenção e exemplos em [references/estrategia-fundo-funi
 
 ### 4. Gerar anúncios e extensões
 Para CADA grupo, escreva:
-- **RSA:** até 15 headlines (≤30 caracteres) e até 4 descriptions (≤90 caracteres), com **message match** (use as keywords do grupo). Espaço conta como caractere.
-- **Callouts** (frases de destaque, ≤25 caracteres) e **sitelinks**.
+- **2 RSAs por grupo** (padrão, para teste A/B; o Google permite até 3). Faça os dois com ângulos distintos — ex.: **RSA 1 factual/produto** (tipologia, números, diferenciais) e **RSA 2 lifestyle/CTA** (benefício emocional, "agende uma visita", "fale no WhatsApp") — sempre com **message match** (use as keywords do grupo). Cada RSA: até 15 headlines (≤30 caracteres) e até 4 descriptions (≤90 caracteres). Espaço conta como caractere.
+- **Callouts** (frases de destaque, ≤25 caracteres), **sitelinks** e **structured snippets** (cabeçalho + valores ≤25; cabeçalhos pt-BR válidos: `Comodidades`, `Tipos`, `Bairros`, `Estilos`, `Marcas` etc.).
 
 Limites, contagem de caracteres e o que a IA pode/não pode gerar em [references/limites-e-ativos.md](references/limites-e-ativos.md).
 

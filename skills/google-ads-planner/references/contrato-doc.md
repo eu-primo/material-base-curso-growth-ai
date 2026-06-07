@@ -49,7 +49,7 @@ O JSON fica **entre marcadores** para o parser localizá-lo sem ambiguidade:
         { "texto": "cozinha planejada preço", "match": "EXACT" }
       ],
       "negativas": ["closet", "guarda-roupa"],   // negativas do grupo (anti-canibalização)
-      "anuncios": [
+      "anuncios": [                               // padrão: 2 RSAs por grupo (factual + lifestyle); 1-3 aceitos
         {
           "final_url": "https://cliente.com.br/cozinhas",
           "path1": "cozinha",                    // ≤15
@@ -68,6 +68,9 @@ O JSON fica **entre marcadores** para o parser localizá-lo sem ambiguidade:
     "callouts": ["Projeto 3D Grátis", "Fábrica Própria", "Garantia de 5 Anos"],  // cada ≤25
     "sitelinks": [
       { "texto": "Cozinhas", "final_url": "https://cliente.com.br/cozinhas", "desc1": "Sob medida", "desc2": "Projeto 3D grátis" }
+    ],
+    "structured_snippets": [                          // opcional; cabeçalho pt-BR válido + 3-10 valores (cada ≤25)
+      { "header": "Estilos", "values": ["Cozinha", "Closet", "Home Office", "Dormitório"] }
     ]
   },
   "ativos_externos_pendentes": ["business_logo", "imagens"]

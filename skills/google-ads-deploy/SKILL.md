@@ -52,11 +52,17 @@ Mostre o plano ao usuário. Confirme conta, orçamento/dia, estratégia de lance
 ```bash
 node ".claude/skills/google-ads-deploy/scripts/subir_campanha.js" "plano-google-ads-cliente.md"
 ```
-Cria, em ordem: orçamento → campanha (PAUSADA, pesquisa pura) → critérios de região/idioma e negativas de campanha → grupos → keywords e negativas dos grupos → anúncios RSA → extensões (callouts/sitelinks).
+Cria, em ordem: resolução de geo (por `criteria_id` ou pelo `nome` via API — aborta se nenhuma região resolver, para nunca veicular no país inteiro sem querer) → orçamento → campanha (PAUSADA, pesquisa pura; com rollback do orçamento se a campanha falhar) → critérios de região/idioma e negativas de campanha → grupos → keywords e negativas dos grupos → anúncios RSA → extensões (callouts/sitelinks/**structured snippets**).
 
-### 4. Reportar
+### 4. Auto-auditoria (automática)
+Logo após criar, o script roda sozinho uma **auto-auditoria estrutural**: re-consulta a campanha na conta e confere contra o documento + invariantes de segurança (PAUSED, rede pura, **geo aplicado e não-vazio**, **zero keyword em correspondência ampla**, orçamento, contagens de keywords/anúncios/negativas/extensões, limites de caractere ao vivo). Imprime uma seção `🔍 AUTO-AUDITORIA` com ✅/❌ por item.
+- **Leia a saída.** Se houver qualquer ❌, NÃO trate como concluído: investigue no painel a divergência antes de o usuário ativar.
+- A auditoria do script é **estrutural** (o que entrou na conta bate com o documento). A auditoria **factual** continua sendo sua: cruze as copies dos anúncios (números, m², nomes, estágio do lançamento, comodidades) contra os materiais reais do cliente (site/LP, briefing) e remova qualquer afirmação sem lastro.
+
+### 5. Reportar
 Ao final, informe ao usuário:
 - IDs criados (campanha, grupos) e **link do painel** para revisar.
+- O **resultado da auto-auditoria** (passou limpo, ou quais itens divergiram).
 - A campanha está **PAUSADA** — ele precisa revisar e **ativar manualmente**.
 - **Ativos externos pendentes** (logo, imagens): adicionar no painel ou subir depois, quando tiver os arquivos.
 - Lembrete de otimização contínua (assunto das skills de otimização).
