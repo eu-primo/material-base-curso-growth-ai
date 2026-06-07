@@ -9,6 +9,8 @@ arquivo `SKILL.md` dentro). Para usar, você instala a pasta no seu Claude Code.
 |---|---|---|
 | [`criativos-meta-ia/`](criativos-meta-ia/) | Gera a copy do anúncio + um prompt pronto pro GPT Image 2, a partir de um briefing e/ou criativo de referência. | Só o Claude Code |
 | [`gerar-imagem-codex/`](gerar-imagem-codex/) | Gera a imagem direto no terminal pelo Codex CLI (sem ir no ChatGPT do navegador). | Claude Code + **Codex CLI** logado |
+| [`google-ads-planner/`](google-ads-planner/) | Planeja uma campanha de Rede de Pesquisa: pesquisa de palavras-chave (DataForSEO / Planejador / IA / histórico da conta), grupos por tema e anúncios RSA com message match → documento Markdown pronto. | Claude Code (DataForSEO opcional) |
+| [`google-ads-deploy/`](google-ads-deploy/) | Lê o documento do planner e sobe a campanha no Google Ads via API — sempre pausada, rede de pesquisa pura. | Claude Code + Node + **API do Google Ads** |
 
 ## Como instalar (o próprio Claude instala pra você)
 
